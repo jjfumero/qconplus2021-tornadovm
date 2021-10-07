@@ -1,4 +1,4 @@
-package samples;
+package qconplus2021.samples;
 
 import static org.junit.Assert.assertTrue;
 

@@ -1,4 +1,19 @@
-package samples;
+/*
+ * Copyright 2021, Juan Fumero
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+package qconplus2021.samples;
 
 import uk.ac.manchester.tornado.api.GridScheduler;
 import uk.ac.manchester.tornado.api.KernelContext;
@@ -12,14 +27,18 @@ import uk.ac.manchester.tornado.api.collections.types.VectorFloat4;
 import java.util.Random;
 
 /**
- * TornadoVM - Simple computation!
+ * TornadoVM - Simple computation using vector types in TornadoVM
  *
  * How to run?
  *
- * tornado --threadInfo --printKernel -cp target/qconplus2021-1.0-SNAPSHOT.jar samples.Sample
+ * tornado --threadInfo --printKernel -cp target/qconplus2021-1.0-SNAPSHOT.jar samples.VectorTypes
+ *
+ * Flags:
+ *  --threadInfo: prints in real time the accelerator used and the threads launched on the target device.
+ *  --printKernel: prints the generated kernel by TornadoVM
  *
  */
-public class Sample {
+public class VectorTypes {
 
     // Loop Parallel API
     private static void accelerateVectorOperations(VectorFloat4 inputA, VectorFloat4 inputB, VectorFloat4 output) {
@@ -56,7 +75,7 @@ public class Sample {
 
         // Loop Parallel API
         new TaskSchedule("s0") //
-                .task("t0", Sample::accelerateVectorOperations, a, b, c)
+                .task("t0", VectorTypes::accelerateVectorOperations, a, b, c)
                 .streamOut(c) //
                 .execute();
 
@@ -66,7 +85,7 @@ public class Sample {
         grid.setWorkerGrid("s1.t0", workerGrid);
         KernelContext context = new KernelContext();
         new TaskSchedule("s1") //
-                .task("t0", Sample::accelerateVectorOperationsKernelAPI, context, a, b, c)
+                .task("t0", VectorTypes::accelerateVectorOperationsKernelAPI, context, a, b, c)
                 .streamOut(c)
                 .execute(grid);
     }

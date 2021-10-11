@@ -1,7 +1,7 @@
 
 
 ## Run Julia Sets with TornadoVM accelerated on GPUs
-tornado -Dversion=tornado -cp target/qconplus2021-1.0-SNAPSHOT.jar qconplus2021.samples.JuliaSets
+tornado -cp target/qconplus2021-1.0-SNAPSHOT.jar qconplus2021.samples.JuliaSets --tornado
 
 
 ## Run DFT 
@@ -9,16 +9,16 @@ tornado -Dversion=tornado -cp target/qconplus2021-1.0-SNAPSHOT.jar qconplus2021.
 ##   <size> 
 ##   <mode: parallel | sequential > 
 ##   <iterations> 
-tornado -Dversion=tornado -cp target/qconplus2021-1.0-SNAPSHOT.jar qconplus2021.samples.DFT 8192 parallel 100
+tornado -cp target/qconplus2021-1.0-SNAPSHOT.jar qconplus2021.samples.DFT 8192 parallel 100
 
 
 ## Selecting another backend (if installed with TornadoVM)
-tornado -Ds0.t0.device=1:0 -Dversion=tornado -cp target/qconplus2021-1.0-SNAPSHOT.jar qconplus2021.samples.DFT 8192 parallel 100
+tornado -Ds0.t0.device=1:0 -cp target/qconplus2021-1.0-SNAPSHOT.jar qconplus2021.samples.DFT 8192 parallel 100
 
 
 ## Print Generated Kernel
-tornado --printKernel -Dversion=tornado -cp target/qconplus2021-1.0-SNAPSHOT.jar qconplus2021.samples.DFT 8192 parallel 100
+tornado --printKernel -cp target/qconplus2021-1.0-SNAPSHOT.jar qconplus2021.samples.DFT 8192 parallel 100
 
 
 ## Display in which accelerator the applications was launched and the block of threads used
-tornado --threadInfo -Dversion=tornado -cp target/qconplus2021-1.0-SNAPSHOT.jar qconplus2021.samples.DFT 8192 parallel 100
+tornado --threadInfo -cp target/qconplus2021-1.0-SNAPSHOT.jar qconplus2021.samples.DFT 8192 parallel 100

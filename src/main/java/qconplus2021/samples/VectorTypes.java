@@ -59,7 +59,6 @@ public class VectorTypes {
         VectorFloat4 b = new VectorFloat4(8192);
         VectorFloat4 c = new VectorFloat4(8192);
 
-
         // Input Data Initialization
         Random r = new Random();
         for (int i = 0; i < a.getLength(); i++) {

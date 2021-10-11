@@ -76,7 +76,7 @@ public class JuliaSets {
         }
     }
 
-    private static int[] juliaSetsMultiSequential(int size, float[] hue, float[] brightness) {
+    private static int[] juliaSetsStreamsSequential(int size, float[] hue, float[] brightness) {
         int[] image = new int[size * size];
         IntStream.range(0, size).sequential().forEach(x -> {
             IntStream.range(0, size).sequential().forEach(y -> {
@@ -97,7 +97,7 @@ public class JuliaSets {
         return image;
     }
 
-    private static int[] juliaSetsMultiThread(int size, float[] hue, float[] brightness) {
+    private static int[] juliaSetsStreamsParallel(int size, float[] hue, float[] brightness) {
         int[] image = new int[size * size];
         IntStream.range(0, size).parallel().forEach(x -> {
             IntStream.range(0, size).parallel().forEach(y -> {
@@ -167,18 +167,20 @@ public class JuliaSets {
     private static void runSequential() {
         for (int i = 0; i < ITERATIONS; i++) {
             long start = System.nanoTime();
-            result = juliaSetsMultiSequential(SIZE, hue, brightness);
+            result = juliaSetsStreamsSequential(SIZE, hue, brightness);
             long end = System.nanoTime();
-            System.out.println("Total Sequential: " + (end - start) + " (ns)");
+            double seconds = (end - start) * 1E-9;
+            System.out.println("Total Sequential: " + (end - start) + " (ns) --  " +  seconds + " (s)");
         }
     }
 
     private static void runMultiThread() {
         for (int i = 0; i < ITERATIONS; i++) {
             long start = System.nanoTime();
-            result = juliaSetsMultiThread(SIZE, hue, brightness);
+            result = juliaSetsStreamsParallel(SIZE, hue, brightness);
             long end = System.nanoTime();
-            System.out.println("Total Multi-threaded: " + (end - start) + " (ns)");
+            double seconds = (end - start) * 1E-9;
+            System.out.println("Total Multi-threaded: " + (end - start) + " (ns) --  " +  seconds + " (s)");
         }
     }
 
@@ -187,7 +189,8 @@ public class JuliaSets {
             long start = System.nanoTime();
             s0.execute();
             long end = System.nanoTime();
-            System.out.println("Total Tornado: " + (end - start) + " (ns)");
+            double seconds = (end - start) * 1E-9;
+            System.out.println("Total Tornado: " + (end - start) + " (ns) --  " +  seconds + " (s)");
         }
     }
 

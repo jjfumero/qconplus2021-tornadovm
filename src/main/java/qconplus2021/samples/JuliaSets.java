@@ -273,13 +273,14 @@ public class JuliaSets {
     public static void main(String[] args) {
 
         if (args.length == 0) {
+            // Use the accelerated TornadoVM version by default
             VERSION = "tornado";
         } else {
             String version = args[0].substring(2);
             if (!VALID_OPTIONS.contains(version)) {
                 System.out.println("Option not valid. Use:");
                 System.out.println("\t--tornado: for accelerated version with TornadoVM");
-                System.out.println("\t--tornadocontext: for accelerated version with TornadoVM");
+                System.out.println("\t--tornadoContext: for accelerated version with TornadoVM");
                 System.out.println("\t--seq: for running the sequential version with Java Streams");
                 System.out.println("\t--mt: for running the CPU multi-thread version with Java Parallel Streams");
                 System.exit(-1);

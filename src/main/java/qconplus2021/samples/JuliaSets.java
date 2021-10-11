@@ -22,9 +22,8 @@ import uk.ac.manchester.tornado.api.WorkerGrid2D;
 import uk.ac.manchester.tornado.api.annotations.Parallel;
 
 import javax.imageio.ImageIO;
-import java.awt.Color;
+import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.awt.image.Kernel;
 import java.awt.image.WritableRaster;
 import java.io.File;
 import java.util.HashSet;

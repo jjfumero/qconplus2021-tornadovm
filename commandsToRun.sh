@@ -1,5 +1,4 @@
 
-
 ## Run Julia Sets with TornadoVM accelerated on GPUs
 tornado -cp target/qconplus2021-1.0-SNAPSHOT.jar qconplus2021.samples.JuliaSets --tornado
 

@@ -15,12 +15,16 @@
  */
 package qconplus2021.samples;
 
+import uk.ac.manchester.tornado.api.GridScheduler;
+import uk.ac.manchester.tornado.api.KernelContext;
 import uk.ac.manchester.tornado.api.TaskSchedule;
+import uk.ac.manchester.tornado.api.WorkerGrid2D;
 import uk.ac.manchester.tornado.api.annotations.Parallel;
 
 import javax.imageio.ImageIO;
 import java.awt.Color;
 import java.awt.image.BufferedImage;
+import java.awt.image.Kernel;
 import java.awt.image.WritableRaster;
 import java.io.File;
 import java.util.HashSet;
@@ -34,7 +38,7 @@ import java.util.stream.IntStream;
  * How to run?
  *
  * <code>
- * tornado qconplus2021.samples.JuliaSets --<tornado|mt|seq>
+ * tornado qconplus2021.samples.JuliaSets --<tornado|tornadocontext|mt|seq>
  *
  * # Example:
  *    $ tornado qconplus2021.samples.JuliaSets --tornado
@@ -45,7 +49,8 @@ public class JuliaSets {
     public final static int SIZE = 8192;
 
     // Version could be "--<tornado|mt|seq>"
-    // tornado = accelerate via TornadoVM
+    // tornado = accelerate via TornadoVM (Loop Parallel API)
+    // tornado = accelerate via TornadoVM and KernelContext API
     // mt = Streams multi thread
     // seq = stream sequential
     public static String VERSION;
@@ -59,12 +64,14 @@ public class JuliaSets {
     private static final float MOVE_Y = 0;
 
     private static TaskSchedule s0;
+    private static TaskSchedule sContext;
     private static int[] result;
     private static float[] hue;
     private static float[] brightness;
 
 
     private final static int ITERATIONS = 10;
+    private static GridScheduler grid;
 
     private static final HashSet<String> VALID_OPTIONS = new HashSet<>();
     static {
@@ -72,21 +79,32 @@ public class JuliaSets {
         VALID_OPTIONS.add("seq");
         VALID_OPTIONS.add("mt");
         VALID_OPTIONS.add("tornado");
+        VALID_OPTIONS.add("tornadoContext");
+        VALID_OPTIONS.add("tornadocontext");
     }
 
     public JuliaSets() {
         result = new int[SIZE * SIZE];
         hue = new float[SIZE * SIZE];
         brightness = new float[SIZE * SIZE];
-        if (VERSION.toLowerCase().equals("tornado")) {
+        if (VERSION.equalsIgnoreCase("tornado")) {
             s0 = new TaskSchedule("s0")
                     .task("t0", JuliaSets::juliaSetTornado, SIZE, hue, brightness)
+                    .streamOut(hue, brightness);
+        } else if (VERSION.equalsIgnoreCase("tornadoContext")) {
+
+            WorkerGrid2D worker2D = new WorkerGrid2D(SIZE, SIZE);
+            KernelContext context = new KernelContext();
+            grid = new GridScheduler();
+            grid.setWorkerGrid("s0.t0", worker2D);
+
+            s0 = new TaskSchedule("s0")
+                    .task("t0", JuliaSets::juliaSetTornadoWithContext, SIZE, hue, brightness, context)
                     .streamOut(hue, brightness);
         }
     }
 
-    private static int[] juliaSetsStreamsSequential(int size, float[] hue, float[] brightness) {
-        int[] image = new int[size * size];
+    private static void juliaSetsStreamsSequential(int size, float[] hue, float[] brightness) {
         IntStream.range(0, size).sequential().forEach(x -> {
             IntStream.range(0, size).sequential().forEach(y -> {
                 float zx = 1.5f * (x - size / 2) / (0.5f * ZOOM * size) + MOVE_X;
@@ -103,11 +121,9 @@ public class JuliaSets {
 
             });
         });
-        return image;
     }
 
-    private static int[] juliaSetsStreamsParallel(int size, float[] hue, float[] brightness) {
-        int[] image = new int[size * size];
+    private static void juliaSetsStreamsParallel(int size, float[] hue, float[] brightness) {
         IntStream.range(0, size).parallel().forEach(x -> {
             IntStream.range(0, size).parallel().forEach(y -> {
                 float zx = 1.5f * (x - size / 2) / (0.5f * ZOOM * size) + MOVE_X;
@@ -124,7 +140,6 @@ public class JuliaSets {
 
             });
         });
-        return image;
     }
 
     /**
@@ -151,6 +166,31 @@ public class JuliaSets {
         }
     }
 
+    /**
+     * Julia Set version adapted for TornadoVM
+     *
+     * It has two parallel loops, generating a 2D kernel for GPUs and FPGAs.
+     *
+     * It uses the KernelContext API
+     *
+     */
+    private static void juliaSetTornadoWithContext(int size, float[] hue, float[] brightness, KernelContext context) {
+        int ix = context.globalIdx;
+        int jx = context.globalIdy;
+        float zx = 1.5f * (ix - size / 2) / (0.5f * ZOOM * size) + MOVE_X;
+        float zy = (jx - size / 2) / (0.5f * ZOOM * size) + MOVE_Y;
+        float k = MAX_ITERATIONS;
+        while (zx * zx + zy * zy < 4 && k > 0) {
+            float tmp = zx * zx - zy * zy + CX;
+            zy = 2.0f * zx * zy + CY;
+            zx = tmp;
+            k--;
+        }
+        hue[ix * size + jx] = (MAX_ITERATIONS / k);
+        brightness[ix * size + jx] = k > 0 ? 1 : 0;
+    }
+
+
     private static BufferedImage writeFile(int[] output, int size) {
         BufferedImage img = null;
         try {
@@ -176,7 +216,7 @@ public class JuliaSets {
     private static void runSequential() {
         for (int i = 0; i < ITERATIONS; i++) {
             long start = System.nanoTime();
-            result = juliaSetsStreamsSequential(SIZE, hue, brightness);
+            juliaSetsStreamsSequential(SIZE, hue, brightness);
             long end = System.nanoTime();
             double seconds = (end - start) * 1E-9;
             System.out.println("Total Sequential: " + (end - start) + " (ns) --  " +  seconds + " (s)");
@@ -186,7 +226,7 @@ public class JuliaSets {
     private static void runMultiThread() {
         for (int i = 0; i < ITERATIONS; i++) {
             long start = System.nanoTime();
-            result = juliaSetsStreamsParallel(SIZE, hue, brightness);
+            juliaSetsStreamsParallel(SIZE, hue, brightness);
             long end = System.nanoTime();
             double seconds = (end - start) * 1E-9;
             System.out.println("Total Multi-threaded: " + (end - start) + " (ns) --  " +  seconds + " (s)");
@@ -203,13 +243,25 @@ public class JuliaSets {
         }
     }
 
+    private static void runWithTornadoContext() {
+        for (int i = 0; i < ITERATIONS; i++) {
+            long start = System.nanoTime();
+            s0.execute(grid);
+            long end = System.nanoTime();
+            double seconds = (end - start) * 1E-9;
+            System.out.println("Total Tornado: " + (end - start) + " (ns) --  " +  seconds + " (s)");
+        }
+    }
+
     public void run() {
-        if (VERSION.toLowerCase().equals("mt")) {
+        if (VERSION.equalsIgnoreCase("mt")) {
             runMultiThread();
         } else if (VERSION.toLowerCase().startsWith("seq")) {
             runSequential();
-        } else if (VERSION.toLowerCase().equals("tornado")) {
+        } else if (VERSION.equalsIgnoreCase("tornado")) {
             runWithTornado();
+        } else if (VERSION.equalsIgnoreCase("tornadoContext")) {
+            runWithTornadoContext();
         }
         for (int i = 0; i < SIZE; i++) {
             for (int j = 0; j < SIZE; j++) {
@@ -224,10 +276,11 @@ public class JuliaSets {
         if (args.length == 0) {
             VERSION = "tornado";
         } else {
-            String version = args[0].toLowerCase().substring(2, args[0].length());
+            String version = args[0].substring(2);
             if (!VALID_OPTIONS.contains(version)) {
                 System.out.println("Option not valid. Use:");
                 System.out.println("\t--tornado: for accelerated version with TornadoVM");
+                System.out.println("\t--tornadocontext: for accelerated version with TornadoVM");
                 System.out.println("\t--seq: for running the sequential version with Java Streams");
                 System.out.println("\t--mt: for running the CPU multi-thread version with Java Parallel Streams");
                 System.exit(-1);

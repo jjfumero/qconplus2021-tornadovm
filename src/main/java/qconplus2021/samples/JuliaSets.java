@@ -23,6 +23,7 @@ import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.awt.image.WritableRaster;
 import java.io.File;
+import java.util.HashSet;
 import java.util.stream.IntStream;
 
 /**
@@ -33,21 +34,21 @@ import java.util.stream.IntStream;
  * How to run?
  *
  * <code>
- * tornado -Dversion=<tornado|mt|seq> -cp target/qconplus2021-1.0-SNAPSHOT.jar samples.JuliaSets
+ * tornado qconplus2021.samples.JuliaSets --<tornado|mt|seq>
  *
  * # Example:
- *    $ tornado -Dversion=tornado -cp target/qconplus2021-1.0-SNAPSHOT.jar samples.JuliaSets
+ *    $ tornado qconplus2021.samples.JuliaSets --tornado
  * </code>
  */
 public class JuliaSets {
 
     public final static int SIZE = 8192;
 
-    // Version could be "tornado|mt|seq"
+    // Version could be "--<tornado|mt|seq>"
     // tornado = accelerate via TornadoVM
     // mt = Streams multi thread
     // seq = stream sequential
-    public static final String VERSION = System.getProperty("version", "tornado");
+    public static String VERSION;
 
     // Parameters for the algorithm used
     private static final int MAX_ITERATIONS = 1000;
@@ -63,7 +64,15 @@ public class JuliaSets {
     private static float[] brightness;
 
 
-    private final static int ITERATIONS = 100;
+    private final static int ITERATIONS = 10;
+
+    private static final HashSet<String> VALID_OPTIONS = new HashSet<>();
+    static {
+        VALID_OPTIONS.add("sequential");
+        VALID_OPTIONS.add("seq");
+        VALID_OPTIONS.add("mt");
+        VALID_OPTIONS.add("tornado");
+    }
 
     public JuliaSets() {
         result = new int[SIZE * SIZE];
@@ -211,6 +220,22 @@ public class JuliaSets {
     }
 
     public static void main(String[] args) {
+
+        if (args.length == 0) {
+            VERSION = "tornado";
+        } else {
+            String version = args[0].toLowerCase().substring(2, args[0].length());
+            if (!VALID_OPTIONS.contains(version)) {
+                System.out.println("Option not valid. Use:");
+                System.out.println("\t--tornado: for accelerated version with TornadoVM");
+                System.out.println("\t--seq: for running the sequential version with Java Streams");
+                System.out.println("\t--mt: for running the CPU multi-thread version with Java Parallel Streams");
+                System.exit(-1);
+            } else {
+                VERSION = version;
+            }
+        }
+
         JuliaSets juliaSets = new JuliaSets();
         juliaSets.run();
     }

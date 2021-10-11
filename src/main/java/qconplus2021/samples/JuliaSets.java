@@ -38,7 +38,7 @@ import java.util.stream.IntStream;
  * How to run?
  *
  * <code>
- * tornado qconplus2021.samples.JuliaSets --<tornado|tornadocontext|mt|seq>
+ * tornado qconplus2021.samples.JuliaSets --<tornado|tornadoContext|mt|seq>
  *
  * # Example:
  *    $ tornado qconplus2021.samples.JuliaSets --tornado

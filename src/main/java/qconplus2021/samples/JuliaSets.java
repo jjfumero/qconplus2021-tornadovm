@@ -26,7 +26,7 @@ import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.awt.image.WritableRaster;
 import java.io.File;
-import java.util.HashSet;
+import java.util.HashMap;
 import java.util.stream.IntStream;
 
 /**
@@ -42,17 +42,15 @@ import java.util.stream.IntStream;
  * # Example:
  *    $ tornado qconplus2021.samples.JuliaSets --tornado
  * </code>
+ *
+ * This example will generate an 8K x 8K image in /tmp/juliaSets.png
+ *
  */
 public class JuliaSets {
 
     public final static int SIZE = 8192;
 
-    // Version could be "--<tornado|mt|seq>"
-    // tornado = accelerate via TornadoVM (Loop Parallel API)
-    // tornado = accelerate via TornadoVM and KernelContext API
-    // mt = Streams multi thread
-    // seq = stream sequential
-    public static String VERSION;
+    public Implementation version;
 
     // Parameters for the algorithm used
     private static final int MAX_ITERATIONS = 1000;
@@ -63,40 +61,50 @@ public class JuliaSets {
     private static final float MOVE_Y = 0;
 
     private static TaskSchedule s0;
-    private static TaskSchedule sContext;
     private static int[] result;
     private static float[] hue;
     private static float[] brightness;
 
 
     private final static int ITERATIONS = 10;
-    private static GridScheduler grid;
+    private GridScheduler grid;
+    private WorkerGrid2D worker2D;
+    private KernelContext context;
 
-    private static final HashSet<String> VALID_OPTIONS = new HashSet<>();
+    private static final boolean STORE_IMAGE = false;
+
+    public enum Implementation {
+        SEQUENTIAL,
+        MT,
+        TORNADO_LOOP,
+        TORNADO_KERNEL
+    }
+    private static final HashMap<String, Implementation> VALID_OPTIONS = new HashMap<>();
     static {
-        VALID_OPTIONS.add("sequential");
-        VALID_OPTIONS.add("seq");
-        VALID_OPTIONS.add("mt");
-        VALID_OPTIONS.add("tornado");
-        VALID_OPTIONS.add("tornadoContext");
-        VALID_OPTIONS.add("tornadocontext");
+        VALID_OPTIONS.put("sequential", Implementation.SEQUENTIAL);
+        VALID_OPTIONS.put("seq", Implementation.SEQUENTIAL);
+        VALID_OPTIONS.put("mt", Implementation.MT);
+        VALID_OPTIONS.put("tornado", Implementation.TORNADO_LOOP);
+        VALID_OPTIONS.put("tornadoContext", Implementation.TORNADO_KERNEL);
+        VALID_OPTIONS.put("tornadocontext", Implementation.TORNADO_KERNEL);
     }
 
-    public JuliaSets() {
+    public JuliaSets(Implementation version) {
         result = new int[SIZE * SIZE];
         hue = new float[SIZE * SIZE];
         brightness = new float[SIZE * SIZE];
-        if (VERSION.equalsIgnoreCase("tornado")) {
+        this.version = version;
+        if (version == Implementation.TORNADO_LOOP) {
+
             s0 = new TaskSchedule("s0")
                     .task("t0", JuliaSets::juliaSetTornado, SIZE, hue, brightness)
                     .streamOut(hue, brightness);
-        } else if (VERSION.equalsIgnoreCase("tornadoContext")) {
 
-            WorkerGrid2D worker2D = new WorkerGrid2D(SIZE, SIZE);
-            KernelContext context = new KernelContext();
+        } else if (version == Implementation.TORNADO_KERNEL) {
+            worker2D = new WorkerGrid2D(SIZE, SIZE);
+            context = new KernelContext();
             grid = new GridScheduler();
             grid.setWorkerGrid("s0.t0", worker2D);
-
             s0 = new TaskSchedule("s0")
                     .task("t0", JuliaSets::juliaSetTornadoWithContext, SIZE, hue, brightness, context)
                     .streamOut(hue, brightness);
@@ -212,7 +220,7 @@ public class JuliaSets {
         return img;
     }
 
-    private static void runSequential() {
+    private void runSequential() {
         for (int i = 0; i < ITERATIONS; i++) {
             long start = System.nanoTime();
             juliaSetsStreamsSequential(SIZE, hue, brightness);
@@ -222,7 +230,7 @@ public class JuliaSets {
         }
     }
 
-    private static void runMultiThread() {
+    private void runMultiThread() {
         for (int i = 0; i < ITERATIONS; i++) {
             long start = System.nanoTime();
             juliaSetsStreamsParallel(SIZE, hue, brightness);
@@ -232,7 +240,7 @@ public class JuliaSets {
         }
     }
 
-    private static void runWithTornado() {
+    private void runWithTornado() {
         for (int i = 0; i < ITERATIONS; i++) {
             long start = System.nanoTime();
             s0.execute();
@@ -242,7 +250,7 @@ public class JuliaSets {
         }
     }
 
-    private static void runWithTornadoContext() {
+    private void runWithTornadoContext() {
         for (int i = 0; i < ITERATIONS; i++) {
             long start = System.nanoTime();
             s0.execute(grid);
@@ -253,43 +261,44 @@ public class JuliaSets {
     }
 
     public void run() {
-        if (VERSION.equalsIgnoreCase("mt")) {
-            runMultiThread();
-        } else if (VERSION.toLowerCase().startsWith("seq")) {
-            runSequential();
-        } else if (VERSION.equalsIgnoreCase("tornado")) {
-            runWithTornado();
-        } else if (VERSION.equalsIgnoreCase("tornadoContext")) {
-            runWithTornadoContext();
+        switch (version) {
+            case SEQUENTIAL:
+                runMultiThread();
+                break;
+            case MT:
+                runSequential();
+                break;
+            case TORNADO_LOOP:
+                runWithTornado();
+                break;
+            case TORNADO_KERNEL:
+                runWithTornadoContext();
+                break;
         }
         for (int i = 0; i < SIZE; i++) {
             for (int j = 0; j < SIZE; j++) {
                 result[i * SIZE + j] = Color.HSBtoRGB(hue[i * SIZE + j] % 1, 1, brightness[i * SIZE + j]);
             }
         }
-        writeFile(result, SIZE);
+        if (STORE_IMAGE) {
+            writeFile(result, SIZE);
+        }
     }
 
     public static void main(String[] args) {
-
-        if (args.length == 0) {
-            // Use the accelerated TornadoVM version by default
-            VERSION = "tornado";
-        } else {
-            String version = args[0].substring(2);
-            if (!VALID_OPTIONS.contains(version)) {
+        String version = "tornado";
+        if (args.length != 0) {
+            version = args[0].substring(2);
+            if (!VALID_OPTIONS.containsKey(version)) {
                 System.out.println("Option not valid. Use:");
                 System.out.println("\t--tornado: for accelerated version with TornadoVM");
                 System.out.println("\t--tornadoContext: for accelerated version with TornadoVM");
                 System.out.println("\t--seq: for running the sequential version with Java Streams");
                 System.out.println("\t--mt: for running the CPU multi-thread version with Java Parallel Streams");
                 System.exit(-1);
-            } else {
-                VERSION = version;
             }
         }
-
-        JuliaSets juliaSets = new JuliaSets();
+        JuliaSets juliaSets = new JuliaSets(VALID_OPTIONS.get(version));
         juliaSets.run();
     }
 }

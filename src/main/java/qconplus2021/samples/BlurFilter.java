@@ -94,7 +94,7 @@ public class BlurFilter {
             grid = new GridScheduler();
             // This version might run slower, since thread block size can influence performance.
             // TornadoVM implements a heuristic for thread block selection (available for loop-parallel API)
-            WorkerGrid2D worker = new WorkerGrid2D(w, h);
+            WorkerGrid2D worker = new WorkerGrid2D(h, w);
             grid.setWorkerGrid("blur.red", worker);
             grid.setWorkerGrid("blur.green", worker);
             grid.setWorkerGrid("blur.blue", worker);
@@ -146,7 +146,6 @@ public class BlurFilter {
     }
 
     private static void channelConvolutionSequential(int[] channel, int[] channelBlurred, final int numRows, final int numCols, float[] filter, final int filterWidth) {
-        // Dealing with an even width filter is trickier
         assert (filterWidth % 2 == 1);
         for (int r = 0; r < numRows; r++) {
             for (int c = 0; c < numCols; c++) {
@@ -166,9 +165,7 @@ public class BlurFilter {
     }
 
     private static void compute(int[] channel, int[] channelBlurred, final int numRows, final int numCols, float[] filter, final int filterWidth) {
-        // For every pixel in the image
         assert (filterWidth % 2 == 1);
-
         for (@Parallel int r = 0; r < numRows; r++) {
             for (@Parallel int c = 0; c < numCols; c++) {
                 float result = 0.0f;
@@ -267,7 +264,7 @@ public class BlurFilter {
     }
 
     private void runTornadoVM() {
-        TornadoDevice device = TornadoRuntime.getTornadoRuntime().getDriver(1).getDevice(0);
+        TornadoDevice device = TornadoRuntime.getTornadoRuntime().getDriver(0).getDevice(0);
         System.out.println(device);
         parallelFilter.mapAllTo(device);
         for (int i = 0; i< MAX_ITERATIONS; i++) {
@@ -279,7 +276,7 @@ public class BlurFilter {
     }
 
     private void runTornadoVMWithContext() {
-        TornadoDevice device = TornadoRuntime.getTornadoRuntime().getDriver(1).getDevice(0);
+        TornadoDevice device = TornadoRuntime.getTornadoRuntime().getDriver(0).getDevice(0);
         System.out.println(device);
         parallelFilter.mapAllTo(device);
         for (int i = 0; i< MAX_ITERATIONS; i++) {

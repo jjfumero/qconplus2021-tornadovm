@@ -263,10 +263,10 @@ public class JuliaSets {
     public void run() {
         switch (version) {
             case SEQUENTIAL:
-                runMultiThread();
+                runSequential();
                 break;
             case MT:
-                runSequential();
+                runMultiThread();
                 break;
             case TORNADO_LOOP:
                 runWithTornado();

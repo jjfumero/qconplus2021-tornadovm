@@ -15,16 +15,6 @@
  */
 package qconplus2021.samples;
 
-import java.awt.Color;
-import java.awt.image.BufferedImage;
-import java.awt.image.Kernel;
-import java.io.File;
-import java.io.IOException;
-import java.util.HashMap;
-import java.util.stream.IntStream;
-
-import javax.imageio.ImageIO;
-
 import uk.ac.manchester.tornado.api.GridScheduler;
 import uk.ac.manchester.tornado.api.KernelContext;
 import uk.ac.manchester.tornado.api.TaskSchedule;
@@ -33,6 +23,22 @@ import uk.ac.manchester.tornado.api.annotations.Parallel;
 import uk.ac.manchester.tornado.api.common.TornadoDevice;
 import uk.ac.manchester.tornado.api.runtime.TornadoRuntime;
 
+import javax.imageio.ImageIO;
+import java.awt.Color;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.stream.IntStream;
+
+/**
+ * Example using TornadoVM. This sample computes a blur filter from an JPEG image using different implementations:
+ *
+ * --tornado: it runs with TornadoVM using the Loop Parallel API (using a hardware accelerator)
+ * --tornadoContext: it runs with TornadoVM using the Parallel Kernel API (using a hardware accelerator)
+ * --mt: it runs with JDK 8 Streams (multi-threaded version without TornadoVM)
+ * --seq: it runs sequentially (no acceleration)
+ */
 public class BlurFilter {
 
     private static final int MAX_ITERATIONS = 10;

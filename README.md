@@ -11,6 +11,7 @@ Run run the examples, first build TornadoVM with both backends (OpenCL and PTX).
 
 
 **Important:** If you do not have an NVIDIA GPU and CUDA installed, do not use the flag `--ptx` in the following command. 
+TornadoVM builds with the OpenCL backend by default. 
 
 
 ```bash
@@ -81,7 +82,29 @@ mvn clean package
 ## Run Examples
 
 
-#### A: Julia Sets
+#### Blur Filter
+
+For the example shown at QCon Plus 2021, we tested with an image of 5184x3888 pixels.
+
+It will read an image from `/tmp/image.jpg`. Change the path to the image if needed. 
+
+
+```bash
+## Run with TornadoVM using the Loop Parallel API 
+tornado -cp target/qconplus2021-1.0-SNAPSHOT.jar qconplus2021.samples.BlurFilter --tornado 
+
+## Run with TornadoVM using the Parallel Kernel API 
+tornado -cp target/qconplus2021-1.0-SNAPSHOT.jar qconplus2021.samples.BlurFilter --tornadoContext
+
+## Run with JVM using the Java Streams (no hardware acceleration) 
+tornado -cp target/qconplus2021-1.0-SNAPSHOT.jar qconplus2021.samples.BlurFilter --mt
+```
+
+
+#### Other examples 
+
+##### 1) Julia Sets
+
 ```bash
 ## Run Julia Sets with TornadoVM accelerated on GPUs
 ## The following example will generate and image in the tmp directory of your OS
@@ -95,7 +118,8 @@ Example image:
 
 
 
-#### B: DFT
+##### 2) DFT
+
 ```bash
 ## Run DFT 
 ## This program has three arguments:
@@ -116,4 +140,3 @@ tornado --printKernel -cp target/qconplus2021-1.0-SNAPSHOT.jar qconplus2021.samp
 ## Display in which accelerator the applications was launched and the block of threads used
 tornado --threadInfo -cp target/qconplus2021-1.0-SNAPSHOT.jar qconplus2021.samples.DFT 8192 parallel 100
 ```
-

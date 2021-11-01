@@ -1,6 +1,6 @@
 ## TornadoVM examples for QCon Plus 2021
 
-Code and examples used for the QCon Plus 2021 presentation: https://plus.qconferences.com/plus2021/track/modern-jvm-innovations 
+Code and examples used for the QCon Plus 2021 presentation: https://plus.qconferences.com/plus2021/presentation/level-your-java-performance-tornadovm
 
 
 Note: Examples using TornadoVM [v0.11](https://github.com/beehive-lab/TornadoVM/releases/tag/v0.11)

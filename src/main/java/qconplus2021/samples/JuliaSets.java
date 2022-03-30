@@ -66,12 +66,12 @@ public class JuliaSets {
     private static float[] brightness;
 
 
-    private final static int ITERATIONS = 10;
+    private static final int ITERATIONS = 10;
     private GridScheduler grid;
     private WorkerGrid2D worker2D;
     private KernelContext context;
 
-    private static final boolean STORE_IMAGE = false;
+    private static final boolean STORE_IMAGE = true;
 
     public enum Implementation {
         SEQUENTIAL,
